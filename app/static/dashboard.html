@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>CivicSignal Dashboard</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; }
+        #header {
+            background: #1a1a2e; color: white; padding: 14px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        #header h1 { font-size: 18px; margin: 0; }
+        #stats { font-size: 13px; color: #ccc; }
+        #map { height: calc(100vh - 56px); width: 100%; }
+        .legend {
+            background: white; padding: 10px 14px; border-radius: 6px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.3); font-size: 12px; line-height: 1.8;
+        }
+        .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>🏙️ CivicSignal — Demand Hotspots</h1>
+        <div id="stats">Loading...</div>
+    </div>
+    <div id="map"></div>
+
+    <script>
+        const map = L.map('map').setView([20.5937, 78.9629], 5); // default: India view
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        function scoreColor(score) {
+            if (score >= 60) return '#e63946'; // high priority - red
+            if (score >= 30) return '#f4a261'; // medium - orange
+            return '#2a9d8f'; // low - green
+        }
+
+        function scoreRadius(count) {
+            return Math.min(10 + count * 4, 40); // bigger circle = more reports
+        }
+
+        async function loadData() {
+            const [requestsRes, hotspotsRes] = await Promise.all([
+                fetch('/requests').then(r => r.json()),
+                fetch('/hotspots').then(r => r.json())
+            ]);
+
+            const allBounds = [];
+
+            // Plot individual requests as small dots
+            requestsRes.forEach(req => {
+                if (req.latitude && req.longitude) {
+                    L.circleMarker([req.latitude, req.longitude], {
+                        radius: 5,
+                        color: '#457b9d',
+                        fillColor: '#a8dadc',
+                        fillOpacity: 0.7,
+                        weight: 1
+                    }).addTo(map).bindPopup(`
+                        <b>${req.category || 'general'}</b> (${req.urgency || 'low'} urgency)<br>
+                        <i>${req.raw_text}</i><br>
+                        📍 ${req.location_text || 'unknown'}<br>
+                        🌐 ${req.channel} | ${req.language || '?'}
+                    `);
+                    allBounds.push([req.latitude, req.longitude]);
+                }
+            });
+
+            // Plot hotspots as larger, color-coded circles on top
+            hotspotsRes.hotspots.forEach(h => {
+                L.circle([h.center_latitude, h.center_longitude], {
+                    radius: 150,
+                    color: scoreColor(h.priority_score),
+                    fillColor: scoreColor(h.priority_score),
+                    fillOpacity: 0.35,
+                    weight: 2
+                }).addTo(map).bindPopup(`
+                    <b>🔥 Hotspot — Priority Score: ${h.priority_score}</b><br>
+                    ${h.request_count} reports | ${h.top_category} | max urgency: ${h.max_urgency}
+                `);
+            });
+
+            document.getElementById('stats').innerText =
+                `${requestsRes.length} requests | ${hotspotsRes.hotspot_count} hotspots detected`;
+
+            if (allBounds.length > 0) {
+                map.fitBounds(allBounds, { padding: [40, 40] });
+            }
+        }
+
+        loadData();
+    </script>
+
+    <div style="position: absolute; bottom: 20px; left: 20px; z-index: 1000;" class="legend">
+        <div><span class="dot" style="background:#e63946"></span>High priority hotspot</div>
+        <div><span class="dot" style="background:#f4a261"></span>Medium priority hotspot</div>
+        <div><span class="dot" style="background:#2a9d8f"></span>Low priority hotspot</div>
+        <div><span class="dot" style="background:#a8dadc"></span>Individual request</div>
+    </div>
+</body>
+</html>

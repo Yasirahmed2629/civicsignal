@@ -1,0 +1,19 @@
+# Virtual environment
+venv/
+
+# Database (contains test data, not needed in repo)
+civicsignal.db
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment variables (if you add any later)
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
