@@ -4,6 +4,14 @@
 
 Built for the BRICS Digital Public Infrastructure challenge — CivicSignal lets citizens report local problems by text, voice, or SMS, in any language, and automatically turns scattered complaints into a prioritized, geolocated action list for governments.
 
+## Live Demo
+
+- API: https://civicsignal-qlfj.onrender.com
+- Interactive docs: https://civicsignal-qlfj.onrender.com/docs
+- Dashboard: https://civicsignal-qlfj.onrender.com/dashboard
+
+> Note: hosted on Render's free tier — the first request after a period of inactivity may take 30–50 seconds while the instance wakes up.
+
 ## The Problem
 
 Citizen feedback on infrastructure (broken roads, water outages, unsafe areas) is scattered across fragmented channels — SMS, WhatsApp, in-person complaints — with no way to see patterns, measure urgency, or align spending with real demand.
@@ -18,7 +26,6 @@ Citizen feedback on infrastructure (broken roads, water outages, unsafe areas) i
 6. **Visualizes everything** on a live map dashboard for policymakers
 
 ## Architecture
-
 ```
 Citizen (text / voice / SMS)
       ↓
@@ -34,7 +41,6 @@ DBSCAN hotspot clustering + demographic-weighted priority scoring
       ↓
 Live map dashboard (Leaflet.js)
 ```
-
 ## Tech Stack
 
 - **Backend**: FastAPI + SQLAlchemy + SQLite
@@ -122,14 +128,12 @@ curl -X POST http://127.0.0.1:8080/requests/sms \
 ## Priority Scoring
 
 Each hotspot is scored 0-100 using a transparent, explainable formula that fuses citizen signal with area-level demographic and infrastructure context:
-
 ```
 priority_score = (volume_score × 0.3)
                 + (urgency_score × 0.3)
                 + (category_score × 0.2)
                 + (demographic_score × 0.2)
 ```
-
 - **Volume**: number of citizen reports in the cluster (capped at 10)
 - **Urgency**: highest urgency level reported (low/medium/high)
 - **Category**: weighted by severity (safety/healthcare > water/electricity > roads/general)
